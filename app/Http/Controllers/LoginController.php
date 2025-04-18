@@ -12,8 +12,9 @@ use Illuminate\Support\Facades\Validator;
 class LoginController extends Controller
 {
     public function login(Request $request){
+        //validating request params
         $validator = Validator::make($request->all(),[
-            'email'=>'email|unique:users|required',
+            'email'=>'email|required',
             'password'=>'min:6|required',
             'confirm_password'=>'required_with:password|same:password|min:6|required',
         ]);
@@ -24,7 +25,9 @@ class LoginController extends Controller
                 'success'=>false
             ],400);
         }else{
+            //finding user
             $user = User::where('email',$request->email)->first();
+            //checking password hash
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json([
                     'message' => 'Invalid credentials',
@@ -32,17 +35,19 @@ class LoginController extends Controller
                     'success' => false
                 ], 401);
             }
+            //checkng user is admin or not
             if($user->isAdmin == 0){
                 return response()->json([
-                    'message' => 'Unauthorized user',
-                    'status' => 403,
-                    'success' => false
-                ], 403);
+                    'message' => 'user is logged in successfully',
+                    'status' => 200,
+                    'success' => true
+                ], 200);
             }
+            //creating sanctum token
             $token = $user->createToken('admin-token')->plainTextToken;
 
             return response()->json([
-                'message' => 'Login successful',
+                'message' => 'Admin Login successful',
                 'status' => 200,
                 'success' => true,
                 'token' => $token,
@@ -52,6 +57,7 @@ class LoginController extends Controller
     }
 
     public function register(Request $request){
+        //validating request params
         $validator = Validator::make($request->all(),[
             'name'=>'required',
             'email'=>'email|unique:users|required',
@@ -65,11 +71,14 @@ class LoginController extends Controller
                 'success'=>false
             ],400);
         }else{
+            //using try catch to ensure api works smoothly
             try{
+                //creating user by inserting values in user table
                 $user = User::create([
                     'name'=>$request->name,
                     'email'=>$request->email,
                     'password'=>$request->password,
+                    'isAdmin'=>0
                     ]);
                 return response()->json([
                     'message' => 'User Created successful',
